@@ -30,7 +30,8 @@
 #include "driver/rmt.h"
 
 
-#define TAG_RC5 "example"
+#define TAG "example"
+
 
 #define RMT_RX_GPIO_NUM  23   			   /*!< GPIO number for receiver */
 
@@ -46,7 +47,7 @@ static TaskHandle_t IR_TaskHandle;
  * @brief RMT receiver demo, this task will print each received NEC data.
  *
  */
-static void IR_RC5_task()
+static void IR__task()
 {
 
 	//int channel = RMT_RX_CHANNEL;
@@ -63,21 +64,21 @@ static void IR_RC5_task()
     rmt_rx.rx_config.idle_threshold = rmt_item32_tIMEOUT_US / 10 * (RMT_TICK_10_US);
     esp_err_t ret = rmt_config(&rmt_rx);
 
-    ESP_LOGD(TAG_RC5, "RC5 cfg:%d", ret);
+    ESP_LOGI(TAG, " cfg:%d", ret);
 
     ret = rmt_driver_install(rmt_rx.channel, 1000, 0);
 
-    ESP_LOGD(TAG_RC5, "RC5 inst:%d", ret);
+    ESP_LOGI(TAG, " inst:%d", ret);
 
 
 	//get RMT RX ringbuffer
 	ret = rmt_get_ringbuf_handle(RMT_CHANNEL_1, &rb);
 
-	ESP_LOGD(TAG_RC5, "RC5 ring:%d", ret);
+	ESP_LOGI(TAG, " ring:%d", ret);
 
 	ret = rmt_rx_start(RMT_CHANNEL_1, 1);
 
-	ESP_LOGD(TAG_RC5, "RC5 start:%d", ret);
+	ESP_LOGI(TAG, " start:%d", ret);
 
 	while(rb)
 	{
@@ -97,7 +98,7 @@ static void IR_RC5_task()
 	}
 
 
-    ESP_LOGD(TAG_RC5, "exit RC5 task");
+    ESP_LOGI(TAG, "exit  task");
 
     vTaskDelete(NULL);
 }
@@ -106,7 +107,7 @@ static void IR_RC5_task()
 //Inizializza la task per l'infrarosso
 void DeInit_IR_Service(void)
 {
-	ESP_LOGD(TAG_RC5, "DeInit");
+	ESP_LOGI(TAG, "DeInit");
 
     ESP_ERROR_CHECK(rmt_rx_stop(RMT_CHANNEL_1));
 
@@ -120,9 +121,9 @@ void DeInit_IR_Service(void)
 //Inizializza la task per l'infrarosso
 void app_main(void)
 {
-	ESP_LOGD(TAG_RC5, "Init");
+	ESP_LOGI(TAG, "Init");
 
-    xTaskCreate(IR_RC5_task, "ir_t", 2048, NULL, 8, &IR_TaskHandle);
+    xTaskCreate(IR__task, "ir_t", 2048, NULL, 8, &IR_TaskHandle);
 
 
     for (uint8_t i = 0; i < 10; i++)
