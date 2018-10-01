@@ -12,32 +12,32 @@
 #include <unistd.h>
 #include <ctype.h>
 
-
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/event_groups.h"
 #include "freertos/queue.h"
-
 #include "esp_system.h"
 #include "esp_log.h"
-
 #include "nvs.h"
 #include "nvs_flash.h"
-
 #include "driver/uart.h"
 #include "driver/gpio.h"
-
 #include "driver/rmt.h"
+
+
+
+//#define init_inTask
 
 
 #define TAG "example"
 
 
 #define RMT_RX_GPIO_NUM  23   			   /*!< GPIO number for receiver */
-
 #define RMT_CLK_DIV      		80    			/*!< RMT counter clock divider, 100 */
 #define RMT_TICK_10_US    		(80000000/RMT_CLK_DIV/100000)   /*!< RMT counter value for 10 us.(Source clock is APB clock) */
 #define rmt_item32_tIMEOUT_US  4000   /*!< RMT receiver timeout value(us) */
+
+
 
 
 
@@ -47,12 +47,13 @@ static TaskHandle_t IR_TaskHandle;
  * @brief RMT receiver demo, this task will print each received NEC data.
  *
  */
-static void IR__task()
+static void IR_task()
 {
-
-	//int channel = RMT_RX_CHANNEL;
+	
 	RingbufHandle_t rb = NULL;
-
+	esp_err_t ret;
+	
+#ifdef init_inTask
     rmt_config_t rmt_rx;
     rmt_rx.channel = RMT_CHANNEL_1;
     rmt_rx.gpio_num = RMT_RX_GPIO_NUM;
@@ -62,15 +63,16 @@ static void IR__task()
     rmt_rx.rx_config.filter_en = true;
     rmt_rx.rx_config.filter_ticks_thresh = 100;
     rmt_rx.rx_config.idle_threshold = rmt_item32_tIMEOUT_US / 10 * (RMT_TICK_10_US);
-    esp_err_t ret = rmt_config(&rmt_rx);
+    ret = rmt_config(&rmt_rx);
 
     ESP_LOGI(TAG, " cfg:%d", ret);
 
     ret = rmt_driver_install(rmt_rx.channel, 1000, 0);
 
     ESP_LOGI(TAG, " inst:%d", ret);
-
-
+#endif
+	
+	
 	//get RMT RX ringbuffer
 	ret = rmt_get_ringbuf_handle(RMT_CHANNEL_1, &rb);
 
@@ -122,12 +124,32 @@ void DeInit_IR_Service(void)
 void app_main(void)
 {
 	ESP_LOGI(TAG, "Init");
+	
+#ifndef init_inTask
+    rmt_config_t rmt_rx;
+    rmt_rx.channel = RMT_CHANNEL_1;
+    rmt_rx.gpio_num = RMT_RX_GPIO_NUM;
+    rmt_rx.clk_div = RMT_CLK_DIV;
+    rmt_rx.mem_block_num = 1;
+    rmt_rx.rmt_mode = RMT_MODE_RX;
+    rmt_rx.rx_config.filter_en = true;
+    rmt_rx.rx_config.filter_ticks_thresh = 100;
+    rmt_rx.rx_config.idle_threshold = rmt_item32_tIMEOUT_US / 10 * (RMT_TICK_10_US);
+    esp_err_t ret = rmt_config(&rmt_rx);
 
-    xTaskCreate(IR__task, "ir_t", 2048, NULL, 8, &IR_TaskHandle);
+    ESP_LOGI(TAG, " cfg:%d", ret);
+
+    ret = rmt_driver_install(rmt_rx.channel, 1000, 0);
+
+    ESP_LOGI(TAG, " inst:%d", ret);
+#endif
+
+    xTaskCreate(IR_task, "ir_t", 2048, NULL, 8, &IR_TaskHandle);
 
 
-    for (uint8_t i = 0; i < 10; i++)
+    for (uint8_t i = 0; i < 5; i++)
     {
+		ESP_LOGI(TAG, " countdown:%d", i);
     	vTaskDelay(1000 / portTICK_PERIOD_MS);
     }
 
